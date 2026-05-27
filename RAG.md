@@ -55,8 +55,24 @@ SQLD Quiz 백엔드의 AI 변형 문제 생성에 사용되는 RAG(Retrieval-Aug
   ┌──────────────────────────────┐
   │  Step 6. Claude Opus 검증    │
   │  생성 문제 전체 일괄 검증    │
+  │  429/529 → 재시도 → fallback │
   │  valid=false → 수정 또는 제외│
   └──────────────────────────────┘
+```
+
+### Claude 검증 실패 시 fallback 흐름
+
+```
+Claude Opus 4.7 호출
+  ├─ ✅ 성공 → 응답 구조 검증 → 반환
+  ├─ ❌ 429/529 → 1초 → 재시도
+  │              → 2초 → 재시도
+  │              → 4초 → 재시도 (총 3회)
+  │              → 모두 실패 → Gemini 3 Pro fallback 검증
+  │                              ├─ ✅ 성공 → 반환
+  │                              └─ ❌ 실패 → 모두 valid:true 통과
+  ├─ ❌ 기타 API 오류 → 즉시 모두 valid:true 통과
+  └─ ❌ 빈 응답 / JSON 파싱 실패 → 모두 valid:true 통과
 ```
 
 ---
@@ -160,7 +176,8 @@ Gemini에게 전달되는 프롬프트 구성:
 
 ### Step 6. Claude Opus 검증
 
-- 모델: **Claude Opus 4.7** (prompt caching 적용)
+- 1차 모델: **Claude Opus 4.7** (prompt caching 적용)
+- Fallback 모델: **Gemini 3 Pro** (Claude 토큰 한도/Overload 시)
 - 생성된 문제 전체를 **1회 API 호출**로 일괄 검증
 - 검증 기준:
   1. 정답이 명확히 하나인가
@@ -172,10 +189,29 @@ Gemini에게 전달되는 프롬프트 구성:
 | 검증 결과 | 처리 |
 |----------|------|
 | `valid: true` | 원본 그대로 사용 |
-| `valid: false` + `corrected` 있음 | 수정된 버전으로 교체 |
+| `valid: false` + `corrected` 있음 | 수정된 버전으로 교체 (Claude 전용) |
 | `valid: false` + `corrected: null` | 해당 문제 제외 |
 
-- API 장애 시 fallback: 모든 문제 `valid: true / score: 5`로 처리 후 통과
+#### 예외 처리 (3단계)
+
+| 상황 | 동작 |
+|------|------|
+| Claude 429 (Rate limit) / 529 (Overload) | 지수 백오프 3회 재시도 (1s → 2s → 4s) |
+| 재시도 모두 실패 | **Gemini 3 Pro로 fallback 검증** (검증 품질 보장용 상위 모델) |
+| Gemini fallback도 실패 | 모든 문제 `valid: true / score: 5`로 통과 |
+| 빈 응답 / JSON 파싱 실패 | 즉시 모두 통과 |
+| 응답 구조 이상 (타입 불일치, 필드 누락) | 자동 보정 (`_normalize_validation_response`) |
+
+#### 응답 구조 검증 규칙
+
+| 필드 | 검증 |
+|------|------|
+| `valid` | bool이 아니면 → `True` (보수적 통과) |
+| `score` | 정수 변환 실패 또는 1~10 범위 밖 → `5` |
+| `feedback` | 비문자열 → 문자열 변환 |
+| `issues` | 비리스트 → `[]`, 각 항목 문자열 강제 |
+| `corrected` | dict 아니면 → `None` |
+| 누락 항목 | `검증 응답 누락` 표시로 자동 채움 |
 
 ---
 
@@ -188,7 +224,9 @@ Gemini에게 전달되는 프롬프트 구성:
 | 유사 기출 추출 수 | **5개** | `top_k=5` |
 | 생성 문제 수 | **1~5개** | `count` 파라미터, 기본값 5 |
 | 챕터 범위 | **단일 챕터** | 최빈 chapter_id 1개로 고정 |
-| Gemini 재시도 | **최대 2회** | 실패 시 502 반환 |
+| Gemini 생성 재시도 | **최대 2회** | 실패 시 502 반환 |
+| Claude 검증 재시도 | **최대 3회** | 429/529만, 지수 백오프 |
+| LLM 엔드포인트 호출 | **IP당 분당 3회** | `LLM_RATE_LIMIT_PER_MINUTE` 환경변수로 조정 |
 
 ---
 
@@ -196,7 +234,8 @@ Gemini에게 전달되는 프롬프트 구성:
 
 | 파일 | 역할 |
 |------|------|
-| [`api/llm.py`](api/llm.py) | API 엔드포인트, 요청 유효성 검사 |
-| [`services/llm_service.py`](services/llm_service.py) | 전체 파이프라인 오케스트레이션, Gemini 생성, Claude 검증 |
+| [`api/llm.py`](api/llm.py) | API 엔드포인트, 요청 유효성 검사, rate limit 의존성 주입 |
+| [`services/llm_service.py`](services/llm_service.py) | 전체 파이프라인 오케스트레이션, Gemini 생성, Claude 검증, Gemini fallback |
 | [`services/rag_service.py`](services/rag_service.py) | 임베딩 생성, 평균 벡터 계산, Atlas Vector Search |
 | [`models/question.py`](models/question.py) | Question Document 스키마 |
+| [`rate_limit.py`](rate_limit.py) | IP 기반 in-memory rate limiter (LLM 엔드포인트 보호) |
