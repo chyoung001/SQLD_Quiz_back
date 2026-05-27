@@ -1,6 +1,7 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
+from rate_limit import llm_rate_limit
 from services.llm_service import generate_practice_questions
 from services.question_service import QuestionService
 
@@ -12,7 +13,7 @@ class GenerateRequest(BaseModel):
     count: int = Field(default=5, ge=1, le=5)
 
 
-@router.post("/generate")
+@router.post("/generate", dependencies=[Depends(llm_rate_limit)])
 async def generate_questions(req: GenerateRequest):
     svc = QuestionService()
     questions = []

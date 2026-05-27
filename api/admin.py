@@ -1,8 +1,26 @@
-from fastapi import APIRouter, Query
-from services.rag_service import vectorize_all_questions, search_similar_questions, embed_text
+from fastapi import APIRouter, Depends, HTTPException, Query, Security
+from fastapi.security import APIKeyHeader
+
+from config import settings
+from services.rag_service import vectorize_all_questions, search_similar_questions
 from models.question import Question
 
-router = APIRouter(prefix="/admin", tags=["admin"])
+_admin_header = APIKeyHeader(name="X-Admin-Token", auto_error=False)
+
+
+def verify_admin_token(token: str | None = Security(_admin_header)) -> None:
+    """관리자 엔드포인트 보호. ADMIN_TOKEN 환경변수가 비어있으면 admin API 자체를 비활성화."""
+    if not settings.admin_token:
+        raise HTTPException(status_code=503, detail="Admin API disabled (ADMIN_TOKEN not configured)")
+    if not token or token != settings.admin_token:
+        raise HTTPException(status_code=401, detail="Invalid or missing X-Admin-Token header")
+
+
+router = APIRouter(
+    prefix="/admin",
+    tags=["admin"],
+    dependencies=[Depends(verify_admin_token)],
+)
 
 
 @router.post("/vectorize")

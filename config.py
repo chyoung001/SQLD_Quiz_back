@@ -9,6 +9,10 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:5173"
     anthropic_api_key: str = ""
     gemini_api_key: str = ""
+    # 관리자 엔드포인트(/api/admin/*) 보호용 토큰. 미설정 시 admin API 비활성화
+    admin_token: str = ""
+    # LLM 생성 엔드포인트 IP당 분당 최대 호출 수
+    llm_rate_limit_per_minute: int = 3
 
     @property
     def cors_origins_list(self) -> list[str]:
