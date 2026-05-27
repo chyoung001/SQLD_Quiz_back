@@ -90,10 +90,10 @@ async def search_similar_questions(
     if not query_texts:
         return []
 
-    # 최대 3개 질의 텍스트만 임베딩 (비용 제한)
+    # 최대 10개 질의 텍스트만 임베딩 (비용 제한)
     try:
         embeddings = []
-        for text in query_texts[:3]:
+        for text in query_texts[:10]:
             emb = await embed_text(text)
             embeddings.append(emb)
     except Exception as e:

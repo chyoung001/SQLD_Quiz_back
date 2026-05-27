@@ -1,4 +1,5 @@
 import json
+import random
 import re
 import uuid
 from collections import Counter
@@ -379,9 +380,11 @@ async def generate_practice_questions(wrong_questions: list[dict], count: int = 
 
     # RAG: 틀린 문제와 유사한 기출 검색 → 프롬프트 컨텍스트로 주입
     # wrong_questions는 dict이므로 이미 dict를 처리하는 _question_to_prompt_text 재사용
-    query_texts = [_question_to_prompt_text(q) for q in wrong_questions[:3]]
+    # 틀린 문제가 10개 초과면 무작위로 10개 샘플링 (매번 다른 조합으로 다양한 RAG 결과 유도)
+    rag_pool = wrong_questions if len(wrong_questions) <= 10 else random.sample(wrong_questions, 10)
+    query_texts = [_question_to_prompt_text(q) for q in rag_pool]
     print(f"[RAG] 벡터 검색 시작 — chapter_id={chapter_id}, 쿼리 {len(query_texts)}개")
-    similar = await search_similar_questions(query_texts, chapter_id, top_k=3)
+    similar = await search_similar_questions(query_texts, chapter_id, top_k=5)
     rag_context = format_rag_context(similar)
     if rag_context:
         scores = [round(s.get("score", 0), 4) for s in similar]

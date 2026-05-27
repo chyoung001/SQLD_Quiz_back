@@ -8,7 +8,7 @@ router = APIRouter(prefix="/llm", tags=["llm"])
 
 
 class GenerateRequest(BaseModel):
-    question_ids: list[str] = Field(..., min_length=1, max_length=10)
+    question_ids: list[str] = Field(..., min_length=1, max_length=15)
     count: int = Field(default=5, ge=1, le=5)
 
 
