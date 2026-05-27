@@ -1,0 +1,81 @@
+# ─── 환경변수 (시크릿 포함 — 절대 커밋 금지) ───────────────────────
+.env
+.env.*
+!.env.example
+.claude
+
+# ─── Python ────────────────────────────────────────────────────────
+venv/
+.venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+.mypy_cache/
+.ruff_cache/
+dist/
+build/
+*.egg-info/
+.eggs/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ─── Node / 프론트엔드 ───────────────────────────────────────────────
+node_modules/
+frontend/dist/
+frontend/dist-ssr/
+*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ─── IDE / 에디터 ───────────────────────────────────────────────────
+# VSCode — 설정/확장/히스토리 전체 제외
+.vscode/
+*.code-workspace
+# JetBrains (IntelliJ, PyCharm 등)
+.idea/
+# Visual Studio
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ─── OS ─────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─── 로그 ───────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ─── 원본 데이터 (배포 불필요) ───────────────────────────────────────
+# PDF: 대용량 + 저작권 있는 교재 원본
+SQLD_data/*.pdf
+
+# JSON: MongoDB Atlas에 이미 적재 완료 → 서버 실행에 불필요
+# DB를 처음부터 재구축할 때만 필요 → 로컬에만 보관
+# (재적재 필요 시 주석 해제)
+SQLD_data/json/
+
+# ─── 임베딩 캐시 (벡터는 MongoDB에 저장 — 로컬 캐시 불필요) ─────────
+# numpy 배열 덤프
+*.npy
+*.npz
+# pickle / joblib
+*.pkl
+*.pickle
+*.joblib
+# FAISS / Annoy 인덱스 파일
+*.faiss
+*.index
+*.ann
+# 임베딩 결과 디렉토리
+embeddings/
+vectors/
+.cache/
