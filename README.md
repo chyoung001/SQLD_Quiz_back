@@ -3,7 +3,9 @@
 SQLD(SQL 개발자) 자격증 시험 대비 플랫폼의 백엔드 API 서버.
 FastAPI + MongoDB Atlas + Gemini + Claude 기반의 RAG·이중 LLM 검증 파이프라인을 제공합니다.
 
-> 프론트엔드 저장소: [→ frontend repo 링크]
+🚀 **배포 주소**: [https://sqldquizback-production.up.railway.app](https://sqldquizback-production.up.railway.app)
+
+> 프론트엔드 저장소: [chyoung001/SQLD_Quiz_Front](https://github.com/chyoung001/SQLD_Quiz_Front)
 
 ---
 
@@ -299,14 +301,14 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8000
    | `MONGODB_URI` | Atlas connection string |
    | `ANTHROPIC_API_KEY` | Claude API 키 |
    | `GEMINI_API_KEY` | Gemini API 키 |
-   | `CORS_ORIGINS` | `https://your-frontend.vercel.app` (쉼표 구분으로 여러 개 가능) |
-5. **Generate Domain** 클릭 → `your-app.up.railway.app` 확보
+   | `CORS_ORIGINS` | `https://sqld-quiz-front.vercel.app` (쉼표 구분으로 여러 개 가능) |
+5. **Generate Domain** 클릭 → `sqldquizback-production.up.railway.app` 확보
 6. 프론트엔드 저장소의 `vercel.json`에 이 URL 등록 필요
 
 ### 헬스 체크
 
 ```bash
-curl https://your-app.up.railway.app/
+curl https://sqldquizback-production.up.railway.app/
 # {"status":"ok","version":"sequential-v2"}
 ```
 
